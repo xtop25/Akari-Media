@@ -1,0 +1,24 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Фон с градиентом -->
+  <rect width="1024" height="1024" rx="230" fill="url(#gradient)"/>
+  
+  <!-- Градиент -->
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    
+    <!-- Тень для текста -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Play кнопка -->
+  <circle cx="512" cy="512" r="200" fill="white" opacity="0.15"/>
+  <path d="M450 370 L650 512 L450 654 Z" fill="white" filter="url(#shadow)"/>
+  
+  <!-- Текст "A" для Akari -->
+  <text x="512" y="820" font-family="Arial, sans-serif" font-size="280" font-weight="bold" fill="white" text-anchor="middle" filter="url(#shadow)">A</text>
+</svg>

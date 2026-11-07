@@ -1,0 +1,20 @@
+[package]
+name = "akari-media"
+version = "0.1.0"
+description = "Ultra-light media player for anime, movies and TV series"
+authors = ["you"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = [] }
+reqwest = { version = "0.12", features = ["native-tls", "blocking"] }
+base64 = "0.18"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
