@@ -3,16 +3,15 @@
 // ============================================
 // Расписание выхода новых серий по дням недели
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AnimeCard } from '@/components/AnimeCard';
 import { CachedImage } from '@/components/CachedImage';
 import { Anime } from '@/types';
 import { getCalendar, convertShikimoriToAnime, ShikimoriCalendarItem } from '@/api/shikimori';
-import { t } from '@/hooks/useSettings';
+import { t, tx, getLanguage } from '@/hooks/useSettings';
 
-const WEEKDAYS = [
+const WEEKDAYS_RU = [
   'Понедельник',
   'Вторник',
   'Среда',
@@ -34,39 +33,17 @@ interface CalendarDay {
 export function CalendarView() {
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const navigate = useNavigate();
 
-  // ============================================
-  // FALLBACK MOCK DATA
-  // ============================================
-  const fallbackCalendar: CalendarDay[] = [
-    { day: 'Monday', animes: [] },
-    { day: 'Tuesday', animes: [
-      { anime: { id: 22589, title: 'Jujutsu Kaisen S3', poster: 'https://shikimori.one/system/animes/original/22589.jpg', rating: 8.9, year: 2024, episodes: 24, status: 'ongoing', genres: ['Action', 'Fantasy', 'Shonen'] }, nextEpisode: 15, nextEpisodeAt: '2024-11-08T18:00:00.000+03:00' },
-    ]},
-    { day: 'Wednesday', animes: [] },
-    { day: 'Thursday', animes: [
-      { anime: { id: 16498, title: 'Attack on Titan Final', poster: 'https://shikimori.one/system/animes/original/16498.jpg', rating: 9.1, year: 2023, episodes: 12, status: 'ongoing', genres: ['Action', 'Drama', 'Shonen'] }, nextEpisode: 8, nextEpisodeAt: '2024-11-09T22:30:00.000+03:00' },
-    ]},
-    { day: 'Friday', animes: [
-      { anime: { id: 20589, title: 'Chainsaw Man', poster: 'https://shikimori.one/system/animes/original/20589.jpg', rating: 8.7, year: 2024, episodes: 12, status: 'ongoing', genres: ['Action', 'Horror', 'Shonen'] }, nextEpisode: 6, nextEpisodeAt: '2024-11-10T16:00:00.000+03:00' },
-    ]},
-    { day: 'Saturday', animes: [
-      { anime: { id: 21202, title: 'Demon Slayer', poster: 'https://shikimori.one/system/animes/original/21202.jpg', rating: 8.6, year: 2023, episodes: 26, status: 'released', genres: ['Action', 'Fantasy', 'Shonen'] }, nextEpisode: 22, nextEpisodeAt: '2024-11-11T14:00:00.000+03:00' },
-    ]},
-    { day: 'Sunday', animes: [] },
-  ];
-
+  const WEEKDAYS = getLanguage() === 'ru' ? WEEKDAYS_RU : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   // ============================================
   // ЗАГРУЗКА КАЛЕНДАРЯ
   // ============================================
   useEffect(() => {
     async function loadCalendar() {
       setIsLoading(true);
-      setError(null);
 
       try {
         const data = await getCalendar();
@@ -106,7 +83,7 @@ export function CalendarView() {
         setSelectedDay(adjustedToday);
       } catch (err) {
         console.error('[CalendarView] Ошибка загрузки:', err);
-        setCalendar(fallbackCalendar);
+        setCalendar(WEEKDAYS.map(day => ({ day, animes: [] })));
         setIsOffline(true);
         // Выбираем текущий день по умолчанию
         const today = new Date().getDay();
@@ -125,7 +102,7 @@ export function CalendarView() {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(getLanguage() === 'ru' ? 'ru-RU' : 'en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (isLoading) {
@@ -178,7 +155,7 @@ export function CalendarView() {
               <div className="flex flex-col items-center">
                 <span>{day.day}</span>
                 <span className="text-xs opacity-70 mt-1">
-                  {day.animes.length} {day.animes.length === 1 ? 'title' : 'titles'}
+                  {day.animes.length} {tx('тайтлов', day.animes.length === 1 ? 'title' : 'titles')}
                 </span>
               </div>
             </button>
@@ -192,7 +169,7 @@ export function CalendarView() {
           {selectedDayData.animes.length === 0 ? (
             <div className="text-center py-20">
               <CalendarIcon size={48} className="text-zinc-600 mx-auto mb-4" />
-              <p className="text-zinc-400">No episodes airing this day</p>
+              <p className="text-zinc-400">{t('calendar.no_episodes')}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -206,6 +183,7 @@ export function CalendarView() {
                     {/* ПОСТЕР */}
                     <CachedImage
                       src={anime.poster}
+          animeId={anime.id}
                       alt={anime.title}
                       className="w-24 h-36 object-cover rounded-lg"
                     />
@@ -227,7 +205,7 @@ export function CalendarView() {
                         {anime.episodes && (
                           <>
                             <span>•</span>
-                            <span>{anime.episodes} эп.</span>
+                            <span>{anime.episodes} {tx('сер.', 'eps.')}</span>
                           </>
                         )}
                       </div>

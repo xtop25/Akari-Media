@@ -30,7 +30,7 @@ export function usePlayerProgress({
   // СОХРАНЕНИЕ ПРОГРЕССА
   // ============================================
   const saveProgress = useCallback(() => {
-    if (!videoElement || videoElement.duration === 0) return;
+    if (!videoElement || !Number.isFinite(videoElement.duration) || videoElement.duration <= 0 || !Number.isFinite(videoElement.currentTime)) return;
 
     const currentTime = videoElement.currentTime;
     const duration = videoElement.duration;
@@ -151,12 +151,14 @@ export function usePlayerProgress({
       saveProgress();
     };
 
+    window.addEventListener('pagehide', saveProgress);
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('pause', handlePause);
     videoElement.addEventListener('seeked', handleSeeked);
     videoElement.addEventListener('ended', handlePause);
 
     return () => {
+      window.removeEventListener('pagehide', saveProgress);
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('pause', handlePause);
       videoElement.removeEventListener('seeked', handleSeeked);

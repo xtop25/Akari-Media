@@ -1,0 +1,23 @@
+const { chromium } = require('playwright');
+const assert = require('assert');
+(async () => {
+ const browser = await chromium.launch({headless:true, ...(process.env.CHROMIUM_PATH ? {executablePath:process.env.CHROMIUM_PATH} : {}),args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+ const page = await browser.newPage(); const errors=[];
+ page.on('pageerror', e=>errors.push(e.message));
+ const anime = {id:61323,name:'Ao no Hako 2nd Season',russian:'Голубая шкатулка 2',image:{original:''},score:'7.8',aired_on:'2026-10-01',episodes:12,episodes_aired:5,status:'ongoing',genres:[],description:'Описание'};
+ await page.route('https://shikimori.io/api/**', route=>{const u=new URL(route.request().url()); let v=u.pathname.endsWith('/calendar') ? [{anime,next_episode:6,next_episode_at:'2026-11-09T18:00:00Z'}] : u.pathname.includes('/animes/61323') ? anime : [anime]; return route.fulfill({json:v,headers:{'access-control-allow-origin':'*'}})});
+ await page.route('https://anilibria.top/api/v1/**', route=>{const u=new URL(route.request().url()); if (u.searchParams.get('limit') === '100') throw Error('invalid limit'); const release={id:10302,shikimori:{id:61323},is_blocked_by_geo:false,is_blocked_by_copyrights:false}; return route.fulfill({json:u.pathname.includes('/catalog/') ? {data:[release]} : {...release,episodes:[{id:'ep1',ordinal:1,name:null,hls_720:'http://127.0.0.1:1420/test-video.webm'},{id:'ep2',ordinal:2,name:null,hls_720:'http://127.0.0.1:1420/test-video.webm'}]},headers:{'access-control-allow-origin':'*'}})});
+ await page.goto('http://127.0.0.1:1420'); await page.getByText('Голубая шкатулка 2').first().waitFor();
+ await page.getByRole('button',{name:'Смотреть',exact:true}).click(); await page.getByText('Серии AniLibria').waitFor();
+ await page.getByRole('button',{name:'☆ В избранное'}).click(); assert((await page.evaluate(()=>JSON.parse(localStorage.getItem('akari_favorites')))).length===1);
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>=1); await page.evaluate(async()=>{const v=document.querySelector('video'); await v.play(); v.currentTime=20; await new Promise(r=>setTimeout(r,250)); v.pause();});
+ await page.waitForFunction(()=>{const p=JSON.parse(localStorage.getItem('akari_player_progress')||'{}'); return Object.values(p).some(v=>v.currentTime >=19)});
+ await page.getByRole('link',{name:'История'}).click(); await page.getByRole('button',{name:'Продолжить'}).click(); await page.getByText('Серии AniLibria').waitFor(); await page.waitForFunction(()=>document.querySelector('video')?.currentTime>=19);
+ await page.getByRole('button',{name:'Следующая серия →'}).click(); await page.waitForTimeout(300); assert(await page.locator('button').filter({hasText:'Серия 2'}).getAttribute('class').then(s=>s.includes('bg-akari-purple')));
+ await page.getByRole('link',{name:'Избранное'}).click(); await page.getByText('Голубая шкатулка 2').first().waitFor();
+ await page.getByRole('link',{name:'Каталог'}).click(); await page.getByText('Голубая шкатулка 2').first().waitFor();
+ await page.getByRole('link',{name:'Расписание'}).click(); await page.getByText('Понедельник').first().waitFor();
+ await page.getByRole('link',{name:'Настройки'}).click(); await page.getByText('Качество по умолчанию').waitFor();
+ assert.deepStrictEqual(errors,[]); console.log('OK: каталог, поиск видео, избранное, прогресс, история, серии, расписание, настройки');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

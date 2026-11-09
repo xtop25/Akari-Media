@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { useState } from 'react';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Sidebar } from '@/components/Sidebar';
 import { HomeView } from '@/views/HomeView';
 import { CatalogView } from '@/views/CatalogView';
@@ -8,37 +7,17 @@ import { CalendarView } from '@/views/CalendarView';
 import { HistoryView } from '@/views/HistoryView';
 import { SettingsView } from '@/views/SettingsView';
 import { AnimeDetailView } from '@/views/AnimeDetailView';
+import { useNavigate } from 'react-router-dom';
+import { Anime } from '@/types';
+import { AnimeCard } from '@/components/AnimeCard';
+import { readFavorites } from '@/hooks/favorites';
 import { t } from '@/hooks/useSettings';
 
 function App() {
-  const [isMiniPlayer, setIsMiniPlayer] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-  const handleToggleMiniPlayer = async () => {
-    const appWindow = getCurrentWindow();
-    const newMiniState = !isMiniPlayer;
-
-    try {
-      if (newMiniState) {
-        await appWindow.setSize({ width: 480, height: 270 });
-        await appWindow.setAlwaysOnTop(true);
-        setIsSidebarCollapsed(true);
-        console.log('[App] Mini player activated');
-      } else {
-        await appWindow.setSize({ width: 1280, height: 720 });
-        await appWindow.setAlwaysOnTop(false);
-        setIsSidebarCollapsed(false);
-        console.log('[App] Mini player deactivated');
-      }
-
-      setIsMiniPlayer(newMiniState);
-    } catch (error) {
-      console.error('[App] Error toggling mini player:', error);
-    }
-  };
+  const [isSidebarCollapsed] = useState(false);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="flex h-screen overflow-hidden bg-akari-dark text-white">
         <Sidebar isCollapsed={isSidebarCollapsed} />
 
@@ -54,26 +33,14 @@ function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
 function FavoritesView() {
-  return (
-    <div className="min-h-screen bg-akari-dark text-white p-8 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-akari-purple to-akari-blue bg-clip-text text-transparent">
-          {t('favorites.title')}
-        </h1>
-        <p className="text-zinc-400 mt-2">{t('favorites.tagline')}</p>
-        <div className="mt-8 p-8 bg-zinc-900 rounded-lg">
-          <p className="text-zinc-500 text-lg">{t('favorites.empty')}</p>
-          <p className="text-zinc-600 text-sm mt-2">{t('favorites.empty_desc')}</p>
-          <p className="text-xs text-zinc-700 mt-4">{t('favorites.coming_soon')}</p>
-        </div>
-      </div>
-    </div>
-  );
+  const [items] = useState<Anime[]>(() => readFavorites());
+  const navigate = useNavigate();
+  return <div className="p-8"><h1 className="text-4xl font-bold mb-8">{t('favorites.title')}</h1>{items.length === 0 ? <p className="text-zinc-400">{t('favorites.empty_desc')}</p> : <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">{items.map(anime => <AnimeCard key={anime.id} anime={anime} onClick={() => navigate(`/watch/${anime.id}`)} />)}</div>}</div>;
 }
 
 export default App;

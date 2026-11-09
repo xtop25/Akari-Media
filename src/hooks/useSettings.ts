@@ -19,7 +19,7 @@ export interface AppSettings {
 const STORAGE_KEY = 'akari_settings';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  language: 'en',
+  language: 'ru',
   autoSkipOpening: true,
   autoSkipEnding: false,
   defaultQuality: 'hd',
@@ -57,8 +57,9 @@ type Strings = Record<string, Record<string, string>>;
 
 const STRINGS: Strings = {
   en: {
+    'poster.unavailable': 'Poster unavailable',
     'app.name': 'Akari Media',
-    'app.tagline': 'Ultra-light media player for ad-free anime, movies & series',
+    'app.tagline': 'Media player and anime catalog',
     'nav.home': 'Home',
     'nav.catalog': 'Catalog',
     'nav.calendar': 'Schedule',
@@ -85,12 +86,12 @@ const STRINGS: Strings = {
     'catalog.reset': 'Reset',
     'catalog.clear_filters': 'Clear all',
     'catalog.no_results': 'No results found',
-    'catalog.offline': 'API unavailable. Showing demo data.',
+    'catalog.offline': 'API unavailable. Please try again later.',
     'calendar.title': 'Schedule',
     'calendar.tagline': 'Weekly anime airing schedule',
     'calendar.episode': 'Episode',
     'calendar.at': 'at',
-    'calendar.offline': 'API unavailable. Showing demo data.',
+    'calendar.offline': 'API unavailable. Please try again later.',
     'calendar.no_episodes': 'No episodes airing today',
     'history.title': 'Watch History',
     'history.tagline': 'All anime with saved progress',
@@ -130,7 +131,7 @@ const STRINGS: Strings = {
     'settings.minimize_tray_desc': 'Minimize to tray instead of taskbar',
     'settings.volume': 'Default Volume',
     'settings.saved': 'Settings saved',
-    'settings.offline_banner': 'API unavailable. Showing demo data.',
+    'settings.offline_banner': 'API unavailable. Please try again later.',
     'player.play': 'Play',
     'player.pause': 'Pause',
     'player.mute': 'Mute',
@@ -146,14 +147,15 @@ const STRINGS: Strings = {
     'player.episode': 'Episode',
     'player.episodes': 'Episodes',
     'error.loading': 'Failed to load data',
-    'error.offline': 'API unavailable. Showing demo data.',
+    'error.offline': 'API unavailable. Please try again later.',
     'error.network': 'Network error. Check your connection.',
     'common.reload': 'Reload',
     'common.loading': 'Loading...',
   },
   ru: {
+    'poster.unavailable': 'Нет постера',
     'app.name': 'Akari Media',
-    'app.tagline': 'Ультралегкий медиаплеер для просмотра аниме без рекламы',
+    'app.tagline': 'Медиаплеер и каталог аниме',
     'nav.home': 'Главная',
     'nav.catalog': 'Каталог',
     'nav.calendar': 'Расписание',
@@ -180,12 +182,12 @@ const STRINGS: Strings = {
     'catalog.reset': 'Сбросить',
     'catalog.clear_filters': 'Очистить все',
     'catalog.no_results': 'Ничего не найдено',
-    'catalog.offline': 'API недоступен. Показаны демо-данные.',
+    'catalog.offline': 'API недоступен. Попробуйте позже.',
     'calendar.title': 'Календарь',
     'calendar.tagline': 'Расписание выхода серий по дням недели',
     'calendar.episode': 'Серия',
     'calendar.at': 'в',
-    'calendar.offline': 'API недоступен. Показаны демо-данные.',
+    'calendar.offline': 'API недоступен. Попробуйте позже.',
     'calendar.no_episodes': 'Нет новых серий в этот день',
     'history.title': 'История просмотров',
     'history.tagline': 'Все аниме с сохранённым прогрессом',
@@ -225,7 +227,7 @@ const STRINGS: Strings = {
     'settings.minimize_tray_desc': 'Сворачивать в системный трей вместо панели задач',
     'settings.volume': 'Громкость по умолчанию',
     'settings.saved': 'Настройки сохранены',
-    'settings.offline_banner': 'API недоступен. Показаны демо-данные.',
+    'settings.offline_banner': 'API недоступен. Попробуйте позже.',
     'player.play': 'Воспроизвести',
     'player.pause': 'Пауза',
     'player.mute': 'Без звука',
@@ -241,7 +243,7 @@ const STRINGS: Strings = {
     'player.episode': 'Серия',
     'player.episodes': 'Серии',
     'error.loading': 'Ошибка загрузки',
-    'error.offline': 'API недоступен. Показаны демо-данные.',
+    'error.offline': 'API недоступен. Попробуйте позже.',
     'error.network': 'Сетевая ошибка. Проверьте подключение.',
     'common.reload': 'Обновить',
     'common.loading': 'Загрузка...',
@@ -253,6 +255,8 @@ let currentLanguage: AppLanguage = 'en';
 export function setLanguage(lang: AppLanguage): void {
   currentLanguage = lang;
 }
+
+export function tx(ru: string, en: string): string { return currentLanguage === 'ru' ? ru : en; }
 
 export function getLanguage(): AppLanguage {
   return currentLanguage;

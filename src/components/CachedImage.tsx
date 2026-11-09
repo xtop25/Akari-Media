@@ -1,46 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useState, useEffect } from 'react';
+import { ImageOff } from 'lucide-react';
+import { getAlternativePoster } from '@/api/posters';
+import { t } from '@/hooks/useSettings';
 
-const imageCache = new Map<string, string>();
-const MAX_CACHE = 100;
-
-export async function loadImage(url: string): Promise<string> {
-  if (imageCache.has(url)) return imageCache.get(url)!;
-
-  const base64 = await invoke('fetch_image', { url });
-  const ext = (url.split('.').pop() || 'jpg').toLowerCase();
-  const mime: Record<string, string> = { jpg: 'jpeg', jpeg: 'jpeg', png: 'png' };
-  const dataUri = `data:image/${mime[ext] || 'jpeg'};base64,${base64}`;
-
-  if (imageCache.size >= MAX_CACHE) {
-    const first = imageCache.keys().next().value;
-    if (first) imageCache.delete(first);
-  }
-  imageCache.set(url, dataUri);
-  return dataUri;
-}
-
-interface CachedImageProps {
-  src: string;
-  alt?: string;
-  className?: string;
-}
-
-export function CachedImage({ src, alt, className }: CachedImageProps) {
-  const [dataUri, setDataUri] = useState<string | null>(null);
-  const [hasError, setHasError] = useState(false);
-  const loaded = useRef(false);
-
+interface CachedImageProps { src: string; animeId?: number; alt?: string; className?: string }
+export function CachedImage({ src, animeId, alt = '', className = '' }: CachedImageProps) {
+  const validSrc = src && !/\/assets\/globals\/missing_|\/missing\.jpg/i.test(src) ? src : '';
+  const [current, setCurrent] = useState(validSrc);
+  const [fallback, setFallback] = useState(!validSrc);
+  useEffect(() => { setCurrent(validSrc); setFallback(!validSrc); }, [validSrc, animeId]);
   useEffect(() => {
-    if (!src || loaded.current) return;
-    loaded.current = true;
-
-    loadImage(src)
-      .then(setDataUri)
-      .catch(() => { setHasError(true); });
-  }, [src]);
-
-  if (dataUri) return <img src={dataUri} alt={alt || ''} className={className} />;
-  if (hasError) return <div className={`${className || ''} flex items-center justify-center bg-zinc-800`} />;
-  return <div className={`${className || ''} flex items-center justify-center bg-zinc-900`} />;
+    if (!fallback || !animeId) return;
+    let active = true;
+    getAlternativePoster(animeId).then(url => { if (active && url) setCurrent(url); });
+    return () => { active = false; };
+  }, [fallback, animeId]);
+  if (!current) return <div className={`${className} poster-placeholder`} role="img" aria-label={`${alt}: ${t('poster.unavailable')}`}><ImageOff size={26} aria-hidden="true" /><span>{t('poster.unavailable')}</span></div>;
+  return <img src={current} alt={alt} className={className} loading="lazy" onError={() => { setCurrent(''); if (!fallback) setFallback(true); }} />;
 }

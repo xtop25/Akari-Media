@@ -6,7 +6,7 @@
 
 import { apiGet } from '@/api/proxy';
 
-const BASE_URL = 'https://shikimori.one/api';
+const BASE_URL = 'https://shikimori.io/api';
 
 export interface ShikimoriAnime {
   id: number;
@@ -42,8 +42,10 @@ async function apiShikimori<T>(path: string): Promise<T> {
   return apiGet<T>(`${BASE_URL}${path}`);
 }
 
-export async function searchAnime(query: string, limit = 20): Promise<ShikimoriAnime[]> {
-  const params = new URLSearchParams({ search: query, limit: limit.toString(), order: 'popularity' });
+export async function searchAnime(query: string, limit = 20, filters: AnimeFilters = {}): Promise<ShikimoriAnime[]> {
+  const params = new URLSearchParams({ search: query, limit: limit.toString(), order: filters.order || 'popularity' });
+  if (filters.kind) params.set('kind', filters.kind);
+  if (filters.status) params.set('status', filters.status);
   return await apiShikimori<ShikimoriAnime[]>(`/animes?${params}`);
 }
 
@@ -98,12 +100,11 @@ export async function getGenres(): Promise<Array<{ id: number; name: string; rus
 
 import { Anime } from '@/types';
 
-function fixPosterUrl(url: string, animeId: number): string {
-  if (!url || url === '/system/animes/original/missing.jpg') {
-    return `https://picsum.photos/seed/anime${animeId}/300/450`;
-  }
+function fixPosterUrl(url: string | undefined, animeId: number): string {
+  if (!url || /\/assets\/globals\/missing_|\/missing\.jpg/i.test(url)) return '';
+  void animeId;
   if (url.startsWith('http')) return url;
-  return `https://shikimori.one${url}`;
+  return `https://shikimori.io${url}`;
 }
 
 export function convertShikimoriToAnime(shikimori: ShikimoriAnime): Anime {
@@ -111,7 +112,7 @@ export function convertShikimoriToAnime(shikimori: ShikimoriAnime): Anime {
     id: shikimori.id,
     title: shikimori.russian || shikimori.name,
     titleEnglish: shikimori.name,
-    poster: fixPosterUrl(shikimori.image.original, shikimori.id),
+    poster: fixPosterUrl(shikimori.image?.original, shikimori.id),
     rating: parseFloat(shikimori.score) || undefined,
     year: shikimori.aired_on ? new Date(shikimori.aired_on).getFullYear() : undefined,
     episodes: shikimori.episodes || shikimori.episodes_aired,

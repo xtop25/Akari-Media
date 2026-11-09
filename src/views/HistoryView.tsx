@@ -3,13 +3,14 @@
 // ============================================
 // Показывает все аниме с сохраненным прогрессом
 
-import React, { useState, useEffect } from 'react';
-import { History, Trash2, Play, Clock, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { History, Trash2, Play, Clock } from 'lucide-react';
 import { PlayerProgress } from '@/types';
 import { getProgressPercentage } from '@/hooks/usePlayerProgress';
+import { useNavigate } from 'react-router-dom';
 import { CachedImage } from '@/components/CachedImage';
-import { getProgressPercentage } from '@/hooks/usePlayerProgress';
-import { t } from '@/hooks/useSettings';
+import { getAnimeDetails, convertShikimoriToAnime } from '@/api/shikimori';
+import { t, tx, getLanguage } from '@/hooks/useSettings';
 
 interface HistoryItem {
   animeId: number;
@@ -21,6 +22,7 @@ interface HistoryItem {
 
 export function HistoryView() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const navigate = useNavigate();
 
   // ============================================
   // ЗАГРУЗКА ИСТОРИИ ИЗ LOCALSTORAGE
@@ -38,10 +40,10 @@ export function HistoryView() {
       }
 
       const allProgress: Record<string, PlayerProgress> = JSON.parse(progressData);
-      
+
       // Группируем по animeId и берем последний прогресс
       const groupedByAnime: { [animeId: number]: PlayerProgress } = {};
-      
+
       Object.values(allProgress).forEach((progress) => {
         const existing = groupedByAnime[progress.animeId];
         if (!existing || progress.lastUpdated > existing.lastUpdated) {
@@ -56,13 +58,17 @@ export function HistoryView() {
         .map((progress) => ({
           animeId: progress.animeId,
           title: `Anime #${progress.animeId}`, // TODO: Fetch real title via API
-          poster: `https://via.placeholder.com/300x450/a855f7/ffffff?text=A${progress.animeId}`,
+          poster: '',
           progress,
           lastWatched: new Date(progress.lastUpdated),
         }))
         .sort((a, b) => b.lastWatched.getTime() - a.lastWatched.getTime());
 
       setHistory(historyItems);
+      Promise.all(historyItems.map(async item => {
+        try { const anime = convertShikimoriToAnime(await getAnimeDetails(item.animeId)); return { ...item, title: anime.title, poster: anime.poster }; }
+        catch { return item; }
+      })).then(items => setHistory(current => current.map(item => items.find(updated => updated.animeId === item.animeId) || item)));
     } catch (error) {
       console.error('[HistoryView] Ошибка загрузки истории:', error);
       setHistory([]);
@@ -70,8 +76,7 @@ export function HistoryView() {
   }
 
   const handleContinueWatching = (item: HistoryItem) => {
-    console.log('[HistoryView] Продолжить просмотр:', item.title);
-    // TODO: Навигация на страницу просмотра с восстановлением прогресса
+    navigate(`/watch/${item.animeId}`);
   };
 
   const handleDeleteItem = (animeId: number) => {
@@ -80,7 +85,7 @@ export function HistoryView() {
       if (!progressData) return;
 
       const allProgress: Record<string, PlayerProgress> = JSON.parse(progressData);
-      
+
       // Удаляем все записи для этого аниме
       const filtered = Object.fromEntries(
         Object.entries(allProgress).filter(([_, p]) => p.animeId !== animeId)
@@ -94,7 +99,7 @@ export function HistoryView() {
   };
 
   const handleClearAll = () => {
-    if (confirm('Очистить всю историю просмотров?')) {
+    if (confirm(tx('Очистить всю историю просмотров?', 'Clear all watch history?'))) {
       localStorage.removeItem('akari_player_progress');
       setHistory([]);
     }
@@ -103,7 +108,7 @@ export function HistoryView() {
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    
+
     if (h > 0) {
       return `${h}h ${m}m`;
     }
@@ -121,8 +126,8 @@ export function HistoryView() {
     if (diffMins < 60) return `${diffMins} ${t('history.min_ago')}`;
     if (diffHours < 24) return `${diffHours} ${t('history.hours_ago')}`;
     if (diffDays < 7) return `${diffDays} ${t('history.days_ago')}`;
-    
-    return date.toLocaleDateString('en-US');
+
+    return date.toLocaleDateString(getLanguage() === 'ru' ? 'ru-RU' : 'en-US');
   };
 
   return (
@@ -172,12 +177,13 @@ export function HistoryView() {
                 <div className="flex gap-4">
                   {/* ПОСТЕР */}
                   <div className="relative">
-                    <img
+                    <CachedImage
+                      animeId={item.animeId}
                       src={item.poster}
                       alt={item.title}
                       className="w-24 h-36 object-cover rounded-lg"
                     />
-                    
+
                     {/* ИНДИКАТОР ПРОГРЕССА НА ПОСТЕРЕ */}
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
                       <div
@@ -194,7 +200,7 @@ export function HistoryView() {
                         <h3 className="text-xl font-bold mb-1 group-hover:text-akari-purple transition-colors">
                           {item.title}
                         </h3>
-                        
+
                         <div className="flex items-center gap-3 text-sm text-zinc-400 mb-3">
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
@@ -233,7 +239,7 @@ export function HistoryView() {
                           <Play size={16} fill="white" />
                           {t('history.continue')}
                         </button>
-                        
+
                         <button
                           onClick={() => handleDeleteItem(item.animeId)}
                           className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"

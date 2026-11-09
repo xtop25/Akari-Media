@@ -2,7 +2,7 @@
 // СТРАНИЦА КАТАЛОГА С ПОИСКОМ И ФИЛЬТРАМИ
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, X, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AnimeCard } from '@/components/AnimeCard';
@@ -13,24 +13,19 @@ import {
   convertShikimoriToAnime,
   AnimeFilters 
 } from '@/api/shikimori';
-import { t } from '@/hooks/useSettings';
-
-const GENRES = [
-  'Экшен', 'Приключения', 'Комедия', 'Драма', 'Фэнтези', 
-  'Ужасы', 'Романтика', 'Фантастика', 'Спорт', 'Триллер'
-];
+import { t, tx } from '@/hooks/useSettings';
 
 const KINDS = [
-  { value: 'tv', label: 'TV Series' },
-  { value: 'movie', label: 'Movie' },
-  { value: 'ova', label: 'OVA' },
-  { value: 'ona', label: 'ONA' },
+  { value: 'tv', label: 'catalog.tv' },
+  { value: 'movie', label: 'catalog.movie' },
+  { value: 'ova', label: 'catalog.ova' },
+  { value: 'ona', label: 'catalog.ona' },
 ];
 
 const STATUSES = [
-  { value: 'ongoing', label: 'Airing' },
-  { value: 'released', label: 'Released' },
-  { value: 'anons', label: 'Upcoming' },
+  { value: 'ongoing', label: 'catalog.airing' },
+  { value: 'released', label: 'catalog.released' },
+  { value: 'anons', label: 'catalog.upcoming' },
 ];
 
 export function CatalogView() {
@@ -47,64 +42,29 @@ export function CatalogView() {
   });
 
   // ============================================
-  // FALLBACK MOCK DATA
-  // ============================================
-  const fallbackAnimes: Anime[] = [
-    { id: 22589, title: 'Jujutsu Kaisen S3', poster: 'https://shikimori.one/system/animes/original/22589.jpg', rating: 8.9, year: 2024, episodes: 24, status: 'ongoing', genres: ['Action', 'Fantasy', 'Shonen'] },
-    { id: 16498, title: 'Attack on Titan: Final', poster: 'https://shikimori.one/system/animes/original/16498.jpg', rating: 9.1, year: 2023, episodes: 12, status: 'released', genres: ['Action', 'Drama', 'Shonen'] },
-    { id: 20589, title: 'Chainsaw Man', poster: 'https://shikimori.one/system/animes/original/20589.jpg', rating: 8.7, year: 2024, episodes: 12, status: 'ongoing', genres: ['Action', 'Horror', 'Shonen'] },
-    { id: 21202, title: 'Demon Slayer', poster: 'https://shikimori.one/system/animes/original/21202.jpg', rating: 8.6, year: 2023, episodes: 26, status: 'released', genres: ['Action', 'Fantasy', 'Shonen'] },
-    { id: 22545, title: 'One Punch Man S3', poster: 'https://shikimori.one/system/animes/original/22545.jpg', rating: 8.8, year: 2024, episodes: 12, status: 'ongoing', genres: ['Action', 'Comedy', 'Seinen'] },
-    { id: 22746, title: 'Solo Leveling', poster: 'https://shikimori.one/system/animes/original/22746.jpg', rating: 8.5, year: 2024, episodes: 12, status: 'ongoing', genres: ['Action', 'Fantasy', 'Adventure'] },
-    { id: 20858, title: 'Mushoku Tensei S2', poster: 'https://shikimori.one/system/animes/original/20858.jpg', rating: 8.4, year: 2024, episodes: 12, status: 'ongoing', genres: ['Fantasy', 'Adventure', 'Drama'] },
-    { id: 21079, title: 'Frieren', poster: 'https://shikimori.one/system/animes/original/21079.jpg', rating: 9.0, year: 2024, episodes: 28, status: 'released', genres: ['Fantasy', 'Adventure', 'Drama'] },
-    { id: 21349, title: 'My Hero Academia S7', poster: 'https://shikimori.one/system/animes/original/21349.jpg', rating: 8.4, year: 2024, episodes: 25, status: 'ongoing', genres: ['Action', 'Superhero', 'Shonen'] },
-    { id: 21986, title: 'Spy x Family S3', poster: 'https://shikimori.one/system/animes/original/21986.jpg', rating: 8.6, year: 2024, episodes: 12, status: 'ongoing', genres: ['Comedy', 'Action', 'Slice of Life'] },
-    { id: 20986, title: 'Gate 2', poster: 'https://shikimori.one/system/animes/original/20986.jpg', rating: 8.3, year: 2024, episodes: 12, status: 'ongoing', genres: ['Fantasy', 'Comedy', 'Ecchi'] },
-    { id: 22624, title: 'Dandadan', poster: 'https://shikimori.one/system/animes/original/22624.jpg', rating: 8.7, year: 2024, episodes: 12, status: 'ongoing', genres: ['Action', 'Comedy', 'Supernatural'] },
-  ];
-
-  // ============================================
   // ПОИСК И ФИЛЬТРАЦИЯ
   // ============================================
   useEffect(() => {
-    const delaySearch = setTimeout(() => {
-      loadAnimes();
-    }, 500); // Debounce 500ms
-
-    return () => clearTimeout(delaySearch);
+    let active = true;
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const results = searchQuery.trim()
+          ? await searchAnime(searchQuery.trim(), 24, filters)
+          : await getAnimeWithFilters(filters, 1, 24);
+        if (active) { setAnimes(results.map(convertShikimoriToAnime)); setIsOffline(false); }
+      } catch (error) {
+        console.error('[CatalogView] Ошибка загрузки:', error);
+        if (active) { setAnimes([]); setIsOffline(true); }
+      } finally { if (active) setIsLoading(false); }
+    }, 500);
+    return () => { active = false; clearTimeout(timer); };
   }, [searchQuery, filters]);
-
-  async function loadAnimes() {
-    setIsLoading(true);
-    
-    try {
-      let results;
-      
-      if (searchQuery.trim()) {
-        results = await searchAnime(searchQuery, 24);
-      } else {
-        results = await getAnimeWithFilters(filters, 1, 24);
-      }
-
-      const converted = results.map(convertShikimoriToAnime);
-      setAnimes(converted);
-    } catch (error) {
-      console.error('[CatalogView] Ошибка загрузки:', error);
-      // Если данные не загружаются с API и список пуст — показываем fallback
-      if (!searchQuery.trim()) {
-        setAnimes(fallbackAnimes);
-        setIsOffline(true);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   const handleFilterChange = (key: keyof AnimeFilters, value: any) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value === prev[key] ? undefined : value,
+      [key]: key !== 'order' && value === prev[key] ? undefined : value,
     }));
   };
 
@@ -183,7 +143,7 @@ export function CatalogView() {
       {showFilters && (
         <div className="mb-8 p-6 bg-zinc-900 rounded-lg border border-zinc-800 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">Фильтры</h3>
+            <h3 className="font-semibold text-lg">{t('catalog.filters')}</h3>
             {activeFiltersCount > 0 && (
               <button
                 onClick={clearFilters}
@@ -209,7 +169,7 @@ export function CatalogView() {
                         : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                     }`}
                   >
-                    {kind.label}
+                    {kind.value === 'tv' ? tx('Сериал','TV series') : kind.value === 'movie' ? tx('Фильм','Movie') : kind.value.toUpperCase()}
                   </button>
                 ))}
               </div>
@@ -229,7 +189,7 @@ export function CatalogView() {
                         : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                     }`}
                   >
-                    {status.label}
+                    {status.value === 'ongoing' ? tx('Выходит','Airing') : status.value === 'released' ? tx('Завершено','Finished') : tx('Анонс','Upcoming')}
                   </button>
                 ))}
               </div>
@@ -264,7 +224,7 @@ export function CatalogView() {
       {!isLoading && animes.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-zinc-400">{t('catalog.found')}: {animes.length} anime</p>
+            <p className="text-zinc-400">{t('catalog.found')}: {animes.length}</p>
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

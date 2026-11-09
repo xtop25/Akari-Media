@@ -1,38 +1,26 @@
-// Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use reqwest::blocking::Client;
-use base64::engine::GeneralPurpose;
+use std::time::Duration;
 
+// Только необходимые публичные API: не предоставляем WebView произвольный сетевой прокси.
 #[tauri::command]
-fn fetch_url(url: String) -> Result<String, String> {
-    let client = Client::new();
-    let response = client
-        .get(&url)
-        .header("User-Agent", "AkariMedia/0.1.0 (com.akarimedia.app)")
-        .send()
-        .map_err(|e| format!("Request failed: {e}"))?;
-    let body = response.text().map_err(|e| format!("Body read failed: {e}"))?;
-    Ok(body)
+async fn fetch_url(url: String) -> Result<String, String> {
+    let parsed = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
+    if parsed.scheme() != "https" || !matches!(parsed.host_str(), Some("shikimori.io" | "anilibria.top")) || parsed.port().is_some() || !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("Недопустимый адрес API".into());
+    }
+    let client = reqwest::Client::builder()
+        .user_agent("AkariMedia/0.1.0 (com.akarimedia.app)")
+        .timeout(Duration::from_secs(20))
+        .redirect(reqwest::redirect::Policy::none())
+        .build().map_err(|e| e.to_string())?;
+    let response = client.get(parsed).send().await.map_err(|e| e.to_string())?
+        .error_for_status().map_err(|e| e.to_string())?;
+    response.text().await.map_err(|e| e.to_string())
 }
-
-#[tauri::command]
-fn fetch_image(url: String) -> Result<String, String> {
-    let client = Client::new();
-    let response = client
-        .get(&url)
-        .header("User-Agent", "AkariMedia/0.1.0 (com.akarimedia.app)")
-        .header("Referer", "https://shikimori.one/")
-        .send()
-        .map_err(|e| format!("Image request failed: {e}"))?;
-    let bytes: Vec<u8> = response.bytes().map_err(|e| format!("Image bytes failed: {e}"))?;
-    let encoded = GeneralPurpose::new("", base64::Config::new()).encode_to_string(&bytes);
-    Ok(encoded)
-}
-
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler!(fetch_url, fetch_image))
+        .invoke_handler(tauri::generate_handler![fetch_url])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
