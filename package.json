@@ -1,6 +1,6 @@
 {
   "name": "akari-media",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ультралегкий медиаплеер для просмотра аниме, фильмов и сериалов",
   "type": "module",
   "scripts": {

@@ -14,6 +14,6 @@ const assert = require('assert');
  await p.getByRole('link',{name:'Catalog'}).click();await p.getByRole('button',{name:'Filters'}).click();await p.getByRole('button',{name:'TV series'}).waitFor();
  await p.getByRole('link',{name:'Schedule'}).click();await p.getByText('Monday',{exact:true}).first().waitFor();
  await p.getByRole('link',{name:'Favorites'}).click();await p.getByRole('heading',{name:'Favorites',exact:true}).waitFor();
- await p.getByRole('link',{name:'Home',exact:true}).click();await p.getByRole('button',{name:'Watch',exact:true}).click();await p.getByRole('button',{name:'Back'}).waitFor();await p.getByText('Video not found or unavailable in your region.',{exact:false}).waitFor();
+ await p.getByRole('link',{name:'Home',exact:true}).click();await p.getByRole('button',{name:'Watch',exact:true}).click();await p.getByRole('button',{name:'Back'}).waitFor();await p.getByText('This title was not found on AniLibria.',{exact:false}).waitFor();
  assert.deepStrictEqual(errors,[]); console.log('OK: AniList fallback, Russian/English settings, home, catalog, schedule, favorites and detail');await b.close();
 })().catch(e=>{console.error(e);process.exit(1)});

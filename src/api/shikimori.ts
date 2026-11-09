@@ -121,3 +121,21 @@ export function convertShikimoriToAnime(shikimori: ShikimoriAnime): Anime {
     description: shikimori.description,
   };
 }
+interface FranchiseNode { id: number; name: string; year: number | null; date: number | null; kind: string }
+interface FranchiseGraph { nodes: FranchiseNode[]; links: Array<{source_id: number; target_id: number; relation: string}> }
+/** Только прямая цепочка prequel/sequel — без спин-оффов, ремейков и фильмов из той же франшизы. */
+export async function getSeasons(id: number): Promise<FranchiseNode[]> {
+  const graph = await apiShikimori<FranchiseGraph>(`/animes/${id}/franchise`);
+  const adjacent = new Map<number, number[]>();
+  for (const link of graph.links || []) {
+    if (!['prequel', 'sequel'].includes(link.relation)) continue;
+    adjacent.set(link.source_id, [...(adjacent.get(link.source_id) || []), link.target_id]);
+    adjacent.set(link.target_id, [...(adjacent.get(link.target_id) || []), link.source_id]);
+  }
+  const visited = new Set<number>([id]); const queue = [id];
+  for (let i = 0; i < queue.length; i++) for (const next of adjacent.get(queue[i]) || []) {
+    if (!visited.has(next)) { visited.add(next); queue.push(next); }
+  }
+  return (graph.nodes || []).filter(n => visited.has(n.id)).sort((a,b) => (a.date || 0) - (b.date || 0) || a.id-b.id);
+}
+export type { FranchiseNode };
