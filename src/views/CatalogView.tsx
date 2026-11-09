@@ -2,7 +2,7 @@
 // СТРАНИЦА КАТАЛОГА С ПОИСКОМ И ФИЛЬТРАМИ
 // ============================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Filter, X, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AnimeCard } from '@/components/AnimeCard';
@@ -34,6 +34,10 @@ export function CatalogView() {
   const [isLoading, setIsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const requestVersion = useRef(0);
   const navigate = useNavigate();
   
   // Filters
@@ -46,13 +50,14 @@ export function CatalogView() {
   // ============================================
   useEffect(() => {
     let active = true;
+    requestVersion.current++; setPage(1); setHasMore(false); setLoadingMore(false);
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
         const results = searchQuery.trim()
           ? await searchAnime(searchQuery.trim(), 24, filters)
           : await getAnimeWithFilters(filters, 1, 24);
-        if (active) { setAnimes(results.map(convertShikimoriToAnime)); setIsOffline(false); }
+        if (active) { setAnimes(results.map(convertShikimoriToAnime)); setHasMore(results.length === 24); setIsOffline(false); }
       } catch (error) {
         console.error('[CatalogView] Ошибка загрузки:', error);
         if (active) { setAnimes([]); setIsOffline(true); }
@@ -60,6 +65,18 @@ export function CatalogView() {
     }, 500);
     return () => { active = false; clearTimeout(timer); };
   }, [searchQuery, filters]);
+
+  const loadMore = async () => {
+    if (loadingMore || isLoading || !hasMore) return;
+    const version = requestVersion.current; const next = page + 1; setLoadingMore(true);
+    try {
+      const results = searchQuery.trim() ? await searchAnime(searchQuery.trim(), 24, filters, next) : await getAnimeWithFilters(filters, next, 24);
+      if (requestVersion.current !== version) return;
+      setAnimes(previous => { const ids = new Set(previous.map(a => a.id)); return [...previous, ...results.map(convertShikimoriToAnime).filter(a => !ids.has(a.id))]; });
+      setPage(next); setHasMore(results.length === 24); setIsOffline(false);
+    } catch { if (requestVersion.current === version) setIsOffline(true); }
+    finally { if (requestVersion.current === version) setLoadingMore(false); }
+  };
 
   const handleFilterChange = (key: keyof AnimeFilters, value: any) => {
     setFilters((prev) => ({
@@ -224,7 +241,7 @@ export function CatalogView() {
       {!isLoading && animes.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-zinc-400">{t('catalog.found')}: {animes.length}</p>
+            <p className="text-zinc-400">{tx('Показано', 'Showing')}: {animes.length}</p>
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -232,6 +249,7 @@ export function CatalogView() {
               <AnimeCard key={anime.id} anime={anime} onClick={() => handleAnimeClick(anime)} />
             ))}
           </div>
+          {hasMore && <div className="catalog-more"><button onClick={loadMore} disabled={loadingMore}>{loadingMore ? tx('Загружаем…', 'Loading…') : tx('Показать ещё', 'Show more')}</button></div>}
         </div>
       )}
 

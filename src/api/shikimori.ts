@@ -42,8 +42,8 @@ async function apiShikimori<T>(path: string): Promise<T> {
   return apiGet<T>(`${BASE_URL}${path}`);
 }
 
-export async function searchAnime(query: string, limit = 20, filters: AnimeFilters = {}): Promise<ShikimoriAnime[]> {
-  const params = new URLSearchParams({ search: query, limit: limit.toString(), order: filters.order || 'popularity' });
+export async function searchAnime(query: string, limit = 20, filters: AnimeFilters = {}, page = 1): Promise<ShikimoriAnime[]> {
+  const params = new URLSearchParams({ search: query, limit: limit.toString(), page: page.toString(), order: filters.order || 'popularity' });
   if (filters.kind) params.set('kind', filters.kind);
   if (filters.status) params.set('status', filters.status);
   return await apiShikimori<ShikimoriAnime[]>(`/animes?${params}`);
