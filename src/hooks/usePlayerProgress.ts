@@ -23,7 +23,7 @@ export function usePlayerProgress({
   translation,
   videoElement,
 }: UsePlayerProgressParams) {
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const lastSavedTime = useRef<number>(0);
 
   // ============================================
@@ -131,7 +131,7 @@ export function usePlayerProgress({
         clearInterval(intervalRef.current);
       }
 
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         saveProgress();
       }, AUTO_SAVE_INTERVAL);
     };
