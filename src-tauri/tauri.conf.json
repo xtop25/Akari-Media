@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https: http:; media-src 'self' https: http: blob: data:; img-src 'self' https: http: data:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:"
+      "csp": "default-src 'self'; connect-src 'self' https: http:; media-src 'self' https: http: blob: data:; img-src 'self' https: http: data:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; frame-src https://cinextream.cc https://player.aksor.tv https://ru.yummyani.me https://kodikplayer.com https://alloha.yani.tv"
     }
   },
   "bundle": {

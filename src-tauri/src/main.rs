@@ -6,7 +6,7 @@ use std::time::Duration;
 #[tauri::command]
 async fn fetch_url(url: String) -> Result<String, String> {
     let parsed = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
-    if parsed.scheme() != "https" || !matches!(parsed.host_str(), Some("shikimori.io" | "anilibria.top")) || parsed.port().is_some() || !parsed.username().is_empty() || parsed.password().is_some() {
+    if parsed.scheme() != "https" || !matches!(parsed.host_str(), Some("shikimori.io")) || parsed.port().is_some() || !parsed.username().is_empty() || parsed.password().is_some() {
         return Err("Недопустимый адрес API".into());
     }
     let client = reqwest::Client::builder()

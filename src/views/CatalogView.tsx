@@ -102,7 +102,7 @@ export function CatalogView() {
     <div className="min-h-screen bg-akari-dark text-white p-8">
       {/* ЗАГОЛОВОК И ПОИСК */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-akari-purple to-akari-blue bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-6">
           {t('catalog.title')}
         </h1>
 

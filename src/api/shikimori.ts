@@ -125,7 +125,13 @@ interface FranchiseNode { id: number; name: string; year: number | null; date: n
 interface FranchiseGraph { nodes: FranchiseNode[]; links: Array<{source_id: number; target_id: number; relation: string}> }
 /** Только прямая цепочка prequel/sequel — без спин-оффов, ремейков и фильмов из той же франшизы. */
 export async function getSeasons(id: number): Promise<FranchiseNode[]> {
-  const graph = await apiShikimori<FranchiseGraph>(`/animes/${id}/franchise`);
+  let graph: FranchiseGraph;
+  try {
+    graph = await apiShikimori<FranchiseGraph>(`/animes/${id}/franchise`);
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.links)) throw new Error('Invalid franchise response');
+  } catch {
+    return getAniListSeasons(id);
+  }
   const adjacent = new Map<number, number[]>();
   for (const link of graph.links || []) {
     if (!['prequel', 'sequel'].includes(link.relation)) continue;
@@ -136,6 +142,59 @@ export async function getSeasons(id: number): Promise<FranchiseNode[]> {
   for (let i = 0; i < queue.length; i++) for (const next of adjacent.get(queue[i]) || []) {
     if (!visited.has(next)) { visited.add(next); queue.push(next); }
   }
-  return (graph.nodes || []).filter(n => visited.has(n.id)).sort((a,b) => (a.date || 0) - (b.date || 0) || a.id-b.id);
+  const seasons = graph.nodes.filter(n => visited.has(n.id)).sort((a,b) => (a.date || 0) - (b.date || 0) || a.id-b.id);
+  if (seasons.length < 2) {
+    try { const fallback = await getAniListSeasons(id); if (fallback.length > seasons.length) return fallback; } catch { /* Shikimori still supplied an answer */ }
+  }
+  return seasons;
+}
+
+interface AniListSeasonNode { id: number; idMal: number | null; type: string; format: string | null; title: { english: string | null; romaji: string | null }; startDate: { year: number | null; month: number | null; day: number | null }; relations?: { edges?: Array<{ relationType: string; node: AniListSeasonNode }> } }
+/** Explicit AniList prequel/sequel links only; never guess a season by title. */
+async function getAniListSeasons(malId: number): Promise<FranchiseNode[]> {
+  const fields = `id idMal type format title{english romaji} startDate{year month day} relations{edges{relationType node{id idMal type format title{english romaji} startDate{year month day}}}}`;
+  const visited = new Set<number>();
+  const found = new Map<number, AniListSeasonNode>();
+  const pending = new Set<number>();
+  let tvRoot = false;
+  const deadline = Date.now() + 25000;
+  async function request(query: string, variables: object) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), Math.max(1, Math.min(8000, deadline - Date.now())));
+    try {
+      const r = await fetch('https://graphql.anilist.co', { method: 'POST', headers: {'Content-Type':'application/json', Accept:'application/json'}, body: JSON.stringify({query, variables}), signal: controller.signal });
+      if (!r.ok) throw new Error('AniList request failed');
+      const body = await r.json();
+      if (body.errors || !body.data) throw new Error('Invalid AniList response');
+      return body.data;
+    } finally { window.clearTimeout(timeout); }
+  }
+  const root: AniListSeasonNode = (await request(`query($mal:Int){Media(idMal:$mal,type:ANIME){${fields}}}`, {mal:malId})).Media;
+  if (!root || root.idMal !== malId || !Number.isSafeInteger(root.id)) throw new Error('Invalid AniList media');
+  tvRoot = root.format === 'TV' || root.format === 'TV_SHORT';
+  function visit(media: AniListSeasonNode) {
+    visited.add(media.id); pending.delete(media.id);
+    if (media.idMal && media.type === 'ANIME') found.set(media.idMal, media);
+    for (const edge of media.relations?.edges || []) {
+      const node = edge.node;
+      if (!['PREQUEL','SEQUEL'].includes(edge.relationType) || node?.type !== 'ANIME' || !Number.isSafeInteger(node.id) || (tvRoot && node.format === 'OVA')) continue;
+      if (node.idMal) found.set(node.idMal, node);
+      if (!visited.has(node.id)) pending.add(node.id);
+    }
+  }
+  visit(root);
+  while (pending.size) {
+    if (visited.size >= 30 || Date.now() >= deadline) throw new Error('Season data incomplete');
+    const ids = Array.from(pending).slice(0, Math.min(30 - visited.size, 30));
+    const data = await request(`query($ids:[Int]){Page(page:1,perPage:30){media(id_in:$ids,type:ANIME){${fields}}}}`, {ids});
+    const nodes: AniListSeasonNode[] = data.Page?.media;
+    if (!Array.isArray(nodes) || nodes.length !== ids.length || nodes.some(node => !ids.includes(node.id))) throw new Error('Season data incomplete');
+    for (const node of nodes) visit(node);
+  }
+  return Array.from(found.values()).map(node => {
+    const year = node.startDate?.year || null;
+    const date = year ? Date.UTC(year,(node.startDate?.month || 1)-1,node.startDate?.day || 1)/1000 : null;
+    return { id:node.idMal!, name:node.title?.english || node.title?.romaji || `#${node.idMal}`, year, date, kind:node.format || 'ANIME' };
+  }).sort((a,b)=>(a.date || 0)-(b.date || 0)||a.id-b.id);
 }
 export type { FranchiseNode };

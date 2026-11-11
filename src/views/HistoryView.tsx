@@ -138,7 +138,7 @@ export function HistoryView() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <History className="text-akari-purple" size={32} />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-akari-purple to-akari-blue bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold">
                 {t('history.title')}
               </h1>
             </div>

@@ -14,7 +14,7 @@ export function AnimeCard({ anime, onClick }: AnimeCardProps) {
       <CachedImage src={anime.poster} animeId={anime.id} alt={title} className="card-image" />
       <div className="card-shade" />
       {anime.rating ? <span className="card-score"><Star size={12} fill="currentColor" /> {anime.rating.toFixed(1)}</span> : null}
-      {anime.status && <span className="card-status">{status}</span>}
+      {anime.status && anime.status !== 'released' && <span className="card-status">{status}</span>}
       <span className="card-play" aria-hidden="true"><Play size={20} fill="currentColor" /></span>
       {progress && <span className="card-progress"><span style={{width: `${getProgressPercentage(progress)}%`}} /></span>}
     </div>

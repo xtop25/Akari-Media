@@ -19,7 +19,7 @@ export interface AppSettings {
 const STORAGE_KEY = 'akari_settings';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  language: 'ru',
+  language: 'en',
   autoSkipOpening: true,
   autoSkipEnding: false,
   defaultQuality: 'hd',
@@ -120,7 +120,7 @@ const STRINGS: Strings = {
     'settings.auto_skip_ending_desc': 'Automatically skip the ending credits',
     'settings.default_quality': 'Default Quality',
     'settings.remember_episode': 'Remember Last Episode',
-    'settings.remember_episode_desc': 'Auto-resume from where you left off',
+    'settings.remember_episode_desc': 'Remember your episode selection; third-party video position is not saved',
     'settings.show_descriptions': 'Show Episode Descriptions',
     'settings.interface': 'Interface',
     'settings.language': 'Language',
@@ -216,7 +216,7 @@ const STRINGS: Strings = {
     'settings.auto_skip_ending_desc': 'Автоматически пропускать финальные титры',
     'settings.default_quality': 'Качество по умолчанию',
     'settings.remember_episode': 'Запоминать последнюю серию',
-    'settings.remember_episode_desc': 'Автоматически продолжать с того же места',
+    'settings.remember_episode_desc': 'Запоминать выбранную серию; позиция в стороннем плеере не сохраняется',
     'settings.show_descriptions': 'Показывать описания серий',
     'settings.interface': 'Интерфейс',
     'settings.language': 'Язык',

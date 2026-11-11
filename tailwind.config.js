@@ -9,9 +9,9 @@ export default {
       colors: {
         // Премиальная темная тема с неоновыми акцентами
         'akari': {
-          'purple': '#a855f7',
-          'blue': '#06b6d4',
-          'dark': '#09090b',
+          'purple': '#865440',
+          'blue': '#b07b60',
+          'dark': '#0b0b0c',
           'darker': '#18181b',
         }
       },
