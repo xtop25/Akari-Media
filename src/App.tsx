@@ -7,6 +7,7 @@ import { CalendarView } from '@/views/CalendarView';
 import { HistoryView } from '@/views/HistoryView';
 import { SettingsView } from '@/views/SettingsView';
 import { AnimeDetailView } from '@/views/AnimeDetailView';
+import { LibraryView } from '@/views/LibraryView';
 import { useNavigate } from 'react-router-dom';
 import { Anime } from '@/types';
 import { AnimeCard } from '@/components/AnimeCard';
@@ -27,6 +28,7 @@ function App() {
             <Route path="/catalog" element={<CatalogView />} />
             <Route path="/calendar" element={<CalendarView />} />
             <Route path="/history" element={<HistoryView />} />
+            <Route path="/library" element={<LibraryView />} />
             <Route path="/favorites" element={<FavoritesView />} />
             <Route path="/settings" element={<SettingsView />} />
             <Route path="/watch/:id" element={<AnimeDetailView />} />

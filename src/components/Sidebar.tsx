@@ -1,10 +1,10 @@
-import { Home, Grid, Calendar, History, Bookmark, Settings } from 'lucide-react';
+import { Home, Grid, Calendar, History, Bookmark, Settings, BookMarked } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { t, tx } from '@/hooks/useSettings';
 const NAV_ITEMS = [
   { icon: Home, labelKey: 'nav.home', path: '/' }, { icon: Grid, labelKey: 'nav.catalog', path: '/catalog' },
   { icon: Calendar, labelKey: 'nav.calendar', path: '/calendar' }, { icon: History, labelKey: 'nav.history', path: '/history' },
-  { icon: Bookmark, labelKey: 'nav.favorites', path: '/favorites' }, { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
+  { icon: BookMarked, labelKey: 'nav.library', path: '/library' }, { icon: Bookmark, labelKey: 'nav.favorites', path: '/favorites' }, { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
 ];
 export function Sidebar({ isCollapsed }: { isCollapsed: boolean }) {
   const location = useLocation();
